@@ -1,0 +1,260 @@
+Script1:
+# Mostrar las opciones disponibles al usuario
+Write-Host "1. Mostrar eventos del sistema"
+Write-Host "2. Mostrar errores del ultimo mes" 
+Write-Host "3. Mostrar warnings de aplicaciones de esta semana"
+
+# Pedimos que eligan una opcion
+$opcion = Read-Host "Elige una opcion (1, 2 o 3)"
+
+
+if ($opcion -eq "1") {
+    # Mostramos los ultimos 10 eventos del sistema
+    Write-Host "Mostrando ultimos 10 eventos del sistema..."
+    Get-EventLog -LogName System -Newest 10
+}
+elseif ($opcion -eq "2") {
+   #Mostramos errores del ultimo mes
+    Write-Host "Buscando errores del ultimo mes..."
+    $fecha = (Get-Date).AddMonths(-1)  # Calcula la fecha de hace 1 mes
+    Get-EventLog -LogName System -EntryType Error -After $fecha
+}
+elseif ($opcion -eq "3") {
+    # Mostamos los warnings de aplicaciones de esta semana
+    Write-Host "Buscando warnings de aplicaciones de esta semana..."
+    $fecha = (Get-Date).AddDays(-7)  # Calcula la fecha de hace 7 dias
+    Get-EventLog -LogName Application -EntryType Warning -After $fecha
+}
+else {
+    # Mensaje si el usuario elige una opcion incorrecta
+    Write-Host "ERROR: Opcion incorrecta. Debes elegir 1, 2 o 3."
+}
+
+
+
+
+Script2:
+
+
+Clear-Host
+
+do {
+    Write-Host "REGISTROS DE EVENTOS"
+
+    # Obtener registros disponibles (como en el primer script)
+    $registros = Get-EventLog -List | Where-Object {$_.Entries.Count -gt 0}
+
+    # Mostrar menú numerado (como en el primer script)
+    for ($i = 0; $i -lt $registros.Count; $i++) {
+        Write-Host "$($i+1). $($registros[$i].Log)"
+    }
+    Write-Host "0. Salir"
+
+    # Leer opción (como en el primer script)
+    $opcion = Read-Host "`nOpción"
+
+    # Procesar opción (combinando ambos scripts)
+    if ($opcion -eq '0') {
+        Write-Host "Saliendo..."
+    }
+    elseif ($opcion -gt 0 -and $opcion -le $registros.Count) {
+        $nombreRegistro = $registros[$opcion -1].Log
+        Write-Host "`n=== ULTIMOS 12 EVENTOS: $nombreRegistro ==="
+        
+        # Usar Get-WinEvent como en el segundo script para mejor compatibilidad
+        try {
+            Get-WinEvent -LogName $nombreRegistro -MaxEvents 12 -ErrorAction Stop | 
+                Format-Table TimeCreated, LevelDisplayName, ProviderName, Message -AutoSize
+        }
+        catch {
+            Write-Host "Registro vacío o sin permisos." 
+        }
+        
+        Read-Host "`nPulsa Enter para continuar..."
+    }
+    else {
+        Write-Host "Opción inválida" 
+        Start-Sleep -Seconds 1
+    }
+
+} while ($opcion -ne '0')
+
+
+Script 3:
+
+# Script para mostrar inicios de sesión entre dos fechas
+param(
+    $FechaInicio,
+    $FechaFin
+)
+
+Write-Host "Eventos de Inicio de Sesión:"
+
+Get-EventLog -LogName Security -After $FechaInicio -Before $FechaFin | 
+Where-Object {$_.InstanceId -eq 4624} |
+Where-Object {
+    $usuario = $_.ReplacementStrings[5]
+    $usuario -ne "SYSTEM" -and 
+    $usuario -ne "DWM-1" -and 
+    $usuario -ne "DWM-0" -and 
+    $usuario -ne "UMFD-1" -and 
+    $usuario -ne "UMFD-0" -and 
+    $usuario -ne "LOCAL SERVICE" -and 
+    $usuario -ne "NETWORK SERVICE"
+} |
+ForEach-Object {
+    Write-Host "Fecha: $($_.TimeGenerated) - Usuario: $($_.ReplacementStrings[5])"
+}
+
+
+
+Script 4:
+
+#!/bin/bash
+echo "Buscando errores en logs..."
+
+# Crear archivo de resultados
+echo "ERRORES ENCONTRADOS EN LOGS" > resultado_errores.txt
+
+# Buscar en cada archivo de /var/log
+for archivo in /var/log/*
+do
+    # Si es un archivo normal
+    if [ -f "$archivo" ]
+    then
+        # Buscar errores
+        grep -i "error\|fail" "$archivo" > /dev/null
+        if [ $? -eq 0 ]
+        then
+            echo "=== $archivo ===" >> resultado_errores.txt
+            grep -i "error\|fail" "$archivo" >> resultado_errores.txt
+            echo "" >> resultado_errores.txt
+        fi
+    fi
+done
+
+
+
+
+Script 5:
+
+
+
+#!/bin/bash
+
+echo "eliminador"
+
+# Verificar si existe el archivo programas.txt
+if [ ! -f "programas.txt" ]; then
+    echo "ERROR: No se encuentra el archivo programas.txt"
+    echo "Por favor crea el archivo programas.txt con los nombres de los programas"
+    exit 1
+fi
+
+echo "Programas a eliminar:" 
+cat programas.txt 
+echo "" 
+
+read -p "¿Estás seguro de eliminar estos programas? (s/n): " respuesta
+
+if [ "$respuesta" = "s" ] || [ "$respuesta" = "S" ]; then
+    echo ""
+    echo "Eliminando programas..."
+
+    # Leer cada línea del archivo y eliminar el programa 
+    while read programa 
+    do 
+        if [ -n "$programa" ]; then
+            echo "-> Eliminando: $programa"
+            sudo apt remove --purge -y "$programa"
+        fi
+    done < programas.txt
+
+    echo ""
+    echo "¡Eliminación completada!" 
+else 
+    echo "Operación cancelada"
+fi
+
+
+Script 6:
+
+#!/bin/bash
+# Script para copia diferencial semanal
+
+semana=$(date +%U)
+tar -czf /bacsimone/CopDifSem-$semana.tar.gz /home
+echo "Copia diferencial Semana $semana creada: $(date)" >> /bacsimone/log_copias.txt
+
+
+Script 7:
+
+
+#!/bin/bash
+# Script para limpiar copias diferenciales
+
+echo "Eliminando copias diferenciales antiguas: $(date)" >> /bacsimone/log_copias.txt
+rm -f /bacsimone/CopDifSem-*
+echo "Limpieza completada" >> /bacsimone/log_copias.txt
+
+
+
+Script 8:
+
+#!/bin/bash
+# Script para copia total mensual
+
+mes=$(date +"%B-%Y")
+tar -czf /bacsimone/copiot-$mes.tar.gz /home
+echo "Copia total $mes creada: $(date)" >> /bacsimone/log_copias.txt
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
